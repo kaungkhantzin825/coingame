@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\GameSession;
 use App\Services\LedgerService;
+use App\Services\ReferralService;
 use App\Services\TaskService;
 use App\Support\Cfg;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ class GameController extends ApiController
     public function __construct(
         private LedgerService $ledger,
         private TaskService $tasks,
+        private ReferralService $referrals,
     ) {
     }
 
@@ -113,6 +115,9 @@ class GameController extends ApiController
             $this->tasks->record($user, 'play_game', 1);
             $this->tasks->record($user, 'merge', (int) $data['merges']);
             $this->tasks->recordMax($user, 'reach_score', (int) $data['score']);
+
+            // Pay the inviter once this player has finished enough runs.
+            $this->referrals->qualifyIfEligible($user);
         }
 
         if ($rejected || $reward <= 0) {

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Device;
-use App\Models\Referral;
 use App\Models\User;
 use App\Services\LedgerService;
+use App\Services\ReferralService;
 use App\Support\Cfg;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,8 +13,10 @@ use Illuminate\Support\Str;
 
 class DeviceAuthController extends ApiController
 {
-    public function __construct(private LedgerService $ledger)
-    {
+    public function __construct(
+        private LedgerService $ledger,
+        private ReferralService $referrals,
+    ) {
     }
 
     /** POST /api/auth/device — register or log in by device id, return a token. */
@@ -59,7 +61,11 @@ class DeviceAuthController extends ApiController
                 meta: ['reason' => 'signup_bonus'],
             );
 
-            $this->attachReferrer($user, $data['referral_code'] ?? null);
+            // Same code path as the in-app "enter a friend's code" screen, so
+            // both routes obey identical rules and idempotency keys.
+            if (! empty($data['referral_code'])) {
+                $this->referrals->redeem($user, $data['referral_code']);
+            }
         }
 
         Device::updateOrCreate(
@@ -93,37 +99,5 @@ class DeviceAuthController extends ApiController
         } while (User::where('referral_code', $code)->exists());
 
         return $code;
-    }
-
-    private function attachReferrer(User $user, ?string $code): void
-    {
-        if (! $code) {
-            return;
-        }
-
-        $referrer = User::where('referral_code', Str::upper($code))->first();
-        if (! $referrer || $referrer->id === $user->id) {
-            return;
-        }
-
-        $user->update(['referred_by' => $referrer->id]);
-
-        Referral::firstOrCreate(
-            ['referee_id' => $user->id],
-            [
-                'referrer_id' => $referrer->id,
-                'bonus_coins' => Cfg::int('referral_bonus_coins'),
-                'status' => 'pending',
-            ],
-        );
-
-        // Small instant welcome bonus for the new player; the referrer is paid
-        // once the referee "qualifies" (handled later by a job / on first cashout).
-        $this->ledger->apply(
-            $user, 'referral_bonus',
-            ['coins' => Cfg::int('referral_referee_bonus_coins')],
-            idempotencyKey: "referral_referee:{$user->id}",
-            source: 'system',
-        );
     }
 }

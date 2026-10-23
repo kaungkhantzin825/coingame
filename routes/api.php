@@ -52,4 +52,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Invite
     Route::get('/referral', [ReferralController::class, 'show']);
+    Route::post('/referral/redeem', [ReferralController::class, 'redeem'])->middleware('throttle:10,1');
 });

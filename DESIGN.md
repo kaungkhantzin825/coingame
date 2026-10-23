@@ -108,10 +108,26 @@ Do not treat this table as a list of what exists; use the `Status` column.
 | planned | GET  | `/withdraw/methods` | payout options |
 | planned | POST | `/withdraw` | `{method_key, amount_cents, account}` → pending |
 | planned | GET  | `/withdraw/history` | |
-| planned | GET  | `/referral` | code + stats |
-| planned | POST | `/referral/claim` | `{code}` |
+| live | GET  | `/referral` | code, invite stats, admin-set amounts, `can_redeem` |
+| live | POST | `/referral/redeem` | `{code}` → credits the invitee bonus, holds the inviter bonus |
 
-Rate limits in force: `auth/device` 20/min, both `game/session/*` 60/min.
+Rate limits in force: `auth/device` 20/min, both `game/session/*` 60/min,
+`referral/redeem` 10/min.
+
+**Referral program.** Two payouts, both priced by the admin at
+`/admin/referral-settings` (keys `referral_enabled`, `referral_bonus_coins`,
+`referral_referee_bonus_coins`, `referral_qualify_sessions`):
+
+1. The invitee is credited the moment a code is accepted
+   (`referral_redeem:{user}`).
+2. The inviter is credited only after the invitee finishes
+   `referral_qualify_sessions` runs — checked inside
+   `GameController::end()` via `ReferralService::qualifyIfEligible()`, keyed
+   `referral_bonus:{referral_id}` so it can never pay twice.
+
+A player can only ever be referred once (`users.referred_by` is set on
+success); the same code path serves both signup (`POST /auth/device` with
+`referral_code`) and the in-app "enter a friend's code" screen.
 
 Admin: the Filament 3 panel **already exists** at `/admin` (guard: `User`
 implements `FilamentUser`, `canAccessPanel()` requires `is_admin`). Resources

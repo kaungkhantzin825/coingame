@@ -17,8 +17,12 @@ class Cfg
         'min_withdraw_cents' => 500,        // 5.00
         'min_convert_coins' => 10000,
         'signup_bonus_coins' => 2000,
-        'referral_bonus_coins' => 5000,
-        'referral_referee_bonus_coins' => 1000,
+
+        // Referral program — all four are editable at /admin/referral-settings.
+        'referral_enabled' => true,
+        'referral_bonus_coins' => 5000,          // paid to the player who invited
+        'referral_referee_bonus_coins' => 1000,  // paid to the new player
+        'referral_qualify_sessions' => 3,        // runs the invitee must finish first
 
         // Game rewards
         'merge_reward_base' => 1,           // coins per merge score point
@@ -35,6 +39,8 @@ class Cfg
         // Ads
         'ad_reward_coins' => 500,
         'double_reward_ad_multiplier' => 2,
+        'interstitial_enabled' => true,
+        'interstitial_every_seconds' => 50,  // show one interstitial per N seconds of play
 
         // App
         'min_app_version' => '1.0.0',
@@ -90,9 +96,17 @@ class Cfg
             'min_convert_coins' => self::int('min_convert_coins'),
             'ad_reward_coins' => self::int('ad_reward_coins'),
             'daily_ad_reward_cap' => self::int('daily_ad_reward_cap'),
+            'interstitial_enabled' => self::bool('interstitial_enabled'),
+            'interstitial_every_seconds' => self::int('interstitial_every_seconds'),
             'min_app_version' => self::string('min_app_version'),
             'maintenance' => self::bool('maintenance'),
             'maintenance_message' => self::string('maintenance_message'),
+            // Referral program — amounts are decided by the admin, the client
+            // only displays them.
+            'referral_enabled' => self::bool('referral_enabled'),
+            'referral_bonus_coins' => self::int('referral_bonus_coins'),
+            'referral_referee_bonus_coins' => self::int('referral_referee_bonus_coins'),
+            'referral_qualify_sessions' => self::int('referral_qualify_sessions'),
             // Derived helpers so the client never has to do the maths.
             'coins_per_unit' => $perCent * 100,          // coins per 1.00 of currency
             'min_withdraw_display' => self::formatCents(self::int('min_withdraw_cents')),
